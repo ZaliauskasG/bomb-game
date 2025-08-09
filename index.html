@@ -17,11 +17,12 @@
     .overlay{position:fixed; inset:0; display:grid; place-items:center; background:rgba(2,6,23,.86)}
     .card{background:rgba(15,23,42,.9); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:18px; width:min(92vw,520px); text-align:center}
     h1{margin:0 0 8px}
-    .hint{color:var(--muted); font-size:.95rem}.target{position:absolute; width:96px; height:96px; border-radius:50%; object-fit:cover; object-position:center; box-shadow: 0 8px 24px rgba(0,0,0,.45), inset 0 2px 6px rgba(255,255,255,.4); transform-origin:center center; will-change: transform, opacity;}
+    .hint{color:var(--muted); font-size:.95rem}/* Targets: face images - no circular mask */
+.target{position:absolute; width:96px; height:96px; /* no border-radius */ object-fit:contain; object-position:center; box-shadow: 0 8px 24px rgba(0,0,0,.45), inset 0 2px 6px rgba(255,255,255,.25); background:transparent; transform-origin:center center; will-change: transform, opacity;}
 .target.flash{animation:flash .15s linear 2}
 @keyframes flash { from{filter:brightness(1)} to{filter:brightness(1.5)} }
 
-.pop{position:absolute; width:96px; height:96px; border-radius:50%; pointer-events:none; background: radial-gradient(circle, rgba(255,255,255,.9), rgba(255,255,255,0) 60%); opacity:.9; transform:scale(0.6); animation:pop .25s ease-out forwards}
+.pop{position:absolute; width:96px; height:96px; pointer-events:none; background: radial-gradient(circle, rgba(255,255,255,.9), rgba(255,255,255,0) 60%); opacity:.9; transform:scale(0.6); animation:pop .25s ease-out forwards}
 @keyframes pop { to{opacity:0; transform:scale(1.4)} }
 
 .hearts { display:flex; align-items:center; gap:4px; }
@@ -52,18 +53,20 @@
   const livesEl = document.getElementById('lives');
   const levelEl = document.getElementById('level');
 
+  // Use your provided PNGs
   const FACE_IMAGES = [
     'assets/faces/josh.png',
+    'assets/faces/gin.png',
     'assets/faces/seb.png',
     'assets/faces/cass.png',
     'assets/faces/dan.png',
-    'assets/faces/jac.png',
-    'assets/faces/gin.png'
+    'assets/faces/jac.png'
   ];
+
   const SONG_URL = 'assets/song.mp3';
   const audio = new Audio(SONG_URL);
   audio.preload = 'auto';
-  audio.loop = true;
+  audio.loop = true;  // continuous music
   audio.volume = 1.0;
 
   const STATE = {
@@ -97,6 +100,7 @@
     if (STATE.bombs.size > 0) return;
 
     const {w,h} = DIM();
+    // 2x starting size range
     const size = rand(156, 236);
     const x = Math.round(rand(12, Math.max(12, w - size - 12)));
     const y = Math.round(rand(70, Math.max(70, h - size - 12)));
@@ -112,7 +116,7 @@
     el.style.top  = y + 'px';
 
     const created = performance.now();
-    const lifespan = rand(1400, 2300);
+    const lifespan = rand(1400, 2300); // same timing as before
 
     const bomb = { id, el, x, y, size, created, lifespan, dead:false };
     STATE.bombs.set(id, bomb);
