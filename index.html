@@ -145,7 +145,7 @@
     }
     STATE.bombs.delete(bomb.id);
     STATE.score += 1; scoreEl.textContent = STATE.score;
-    if (STATE.score % 10 === 0) levelUp();
+    if (STATE.score % 5 === 0) levelUp();
   }
 
   function missBomb(bomb){
