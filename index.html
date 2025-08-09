@@ -63,6 +63,11 @@
     'assets/faces/jac.png'
   ];
 
+  FACE_IMAGES.forEach(src => {
+  const img = new Image();
+  img.src = src;
+  });
+  
   const SONG_URL = 'assets/song.mp3';
   const audio = new Audio(SONG_URL);
   audio.preload = 'auto';
