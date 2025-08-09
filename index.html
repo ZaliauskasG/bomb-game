@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
@@ -17,28 +18,37 @@
     .overlay{position:fixed; inset:0; display:grid; place-items:center; background:rgba(2,6,23,.86)}
     .card{background:rgba(15,23,42,.9); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:18px; width:min(92vw,520px); text-align:center}
     h1{margin:0 0 8px}
-    .hint{color:var(--muted); font-size:.95rem}/* Targets: face images */
-.target{position:absolute; width:96px; height:96px; border-radius:50%; object-fit:cover; object-position:center; box-shadow: 0 8px 24px rgba(0,0,0,.45), inset 0 2px 6px rgba(255,255,255,.4); transform-origin:center center; will-change: transform, opacity;}
-.target.flash{animation:flash .15s linear 2}
-@keyframes flash { from{filter:brightness(1)} to{filter:brightness(1.5)} }
+    .hint{color:var(--muted); font-size:.95rem}
 
-.pop{position:absolute; width:96px; height:96px; border-radius:50%; pointer-events:none; background: radial-gradient(circle, rgba(255,255,255,.9), rgba(255,255,255,0) 60%); opacity:.9; transform:scale(0.6); animation:pop .25s ease-out forwards}
-@keyframes pop { to{opacity:0; transform:scale(1.4)} }
+    /* Targets: face images */
+    .target{position:absolute; width:96px; height:96px; border-radius:50%; object-fit:cover; object-position:center; box-shadow: 0 8px 24px rgba(0,0,0,.45), inset 0 2px 6px rgba(255,255,255,.4); transform-origin:center center; will-change: transform, opacity;}
+    .target.flash{animation:flash .15s linear 2}
+    @keyframes flash { from{filter:brightness(1)} to{filter:brightness(1.5)} }
 
+    .pop{position:absolute; width:96px; height:96px; border-radius:50%; pointer-events:none; background: radial-gradient(circle, rgba(255,255,255,.9), rgba(255,255,255,0) 60%); opacity:.9; transform:scale(0.6); animation:pop .25s ease-out forwards}
+    @keyframes pop { to{opacity:0; transform:scale(1.4)} }
+
+    /* Hearts for lives */
+    .hearts { display:flex; align-items:center; gap:4px; }
+    .heart { font-size:1.6rem; line-height:1; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
   </style>
 </head>
 <body>
-  <div class="game" id="game"></div>  <div class="hud">
+  <div class="game" id="game"></div>
+
+  <div class="hud">
     <div class="pill">Score: <span id="score">0</span></div>
-    <div class="pill">Lives: <span id="lives">3</span></div>
+    <div class="pill"><span id="lives" class="hearts"></span></div>
     <div class="pill">Level: <span id="level">1</span></div>
-  </div><button class="btn" id="restartBtn" hidden>Restart</button>
+  </div>
+
+  <button class="btn" id="restartBtn" hidden>Restart</button>
 
   <div class="overlay" id="overlay">
     <div class="card">
       <h1>💥 Face Taps</h1>
       <p class="hint">Tap the faces before they shrink away. Each miss costs a life. You have <b>3 lives</b>. Spawns and shrink speeds ramp up so a game usually ends in a few minutes.</p>
-      <p class="hint">Music cue: a song starts with each face spawn and pauses when you tap it.</p>
+      <p class="hint">Music cue: song quietly runs from the start. Volume <b>fades up</b> when a face appears and <b>fades down</b> when you tap or miss.</p>
       <p class="hint" style="margin-top:8px;text-align:left">
         <b>Add your assets:</b><br>
         • Put images in <code>assets/faces/</code> and list them in <code>FACE_IMAGES</code> below.<br>
@@ -46,7 +56,9 @@
       </p>
       <button class="btn" id="startBtn">Start</button>
     </div>
-  </div><script>
+  </div>
+
+<script>
 (() => {
   const gameEl = document.getElementById('game');
   const overlay = document.getElementById('overlay');
@@ -57,7 +69,6 @@
   const levelEl = document.getElementById('level');
 
   // ======= Assets =======
-  // 1) Put your cropped face images (square) into /assets/faces/ and list them here.
   const FACE_IMAGES = [
     'assets/faces/face1.jpg',
     'assets/faces/face2.jpg',
@@ -66,11 +77,25 @@
     'assets/faces/face5.jpg',
     'assets/faces/face6.jpg'
   ];
-  // 2) Put your song here (MP3/OGG). It will play on each spawn and pause on tap or miss.
   const SONG_URL = 'assets/song.mp3';
-  const audio = new Audio();
+  const audio = new Audio(SONG_URL);
   audio.preload = 'auto';
-  audio.src = SONG_URL;
+  audio.loop = true;        // keep playing quietly between spawns
+  audio.volume = 0.0;       // start silent
+
+  let fadeReq = null;
+  function fadeTo(targetVol, ms=160){
+    targetVol = Math.max(0, Math.min(1, targetVol));
+    const startVol = audio.volume;
+    if (fadeReq) cancelAnimationFrame(fadeReq);
+    const t0 = performance.now();
+    const step = (now)=>{
+      const t = Math.min(1, (now - t0) / ms);
+      audio.volume = startVol + (targetVol - startVol) * t;
+      if (t < 1) fadeReq = requestAnimationFrame(step);
+    };
+    fadeReq = requestAnimationFrame(step);
+  }
 
   const STATE = {
     running:false,
@@ -88,6 +113,17 @@
   const DIM = () => ({ w: gameEl.clientWidth, h: gameEl.clientHeight });
   function rand(a,b){ return a + Math.random()*(b-a); }
   const pick = arr => arr[Math.floor(Math.random()*arr.length)]
+
+  // Hearts renderer
+  function renderLives(){
+    livesEl.innerHTML = '';
+    for (let i=0; i<STATE.lives; i++) {
+      const el = document.createElement('span');
+      el.className = 'heart';
+      el.textContent = '❤️';
+      livesEl.appendChild(el);
+    }
+  }
 
   // Only one active target at a time so music behavior is simple & predictable
   function spawnBomb(){
@@ -114,8 +150,8 @@
     const bomb = { id, el, x, y, size, created, lifespan, dead:false };
     STATE.bombs.set(id, bomb);
 
-    // Audio: start song from beginning on spawn (user gesture must have started game)
-    try { audio.currentTime = 0; audio.play(); } catch(e) { /* autoplay guard */ }
+    // Fade volume up when a face appears
+    fadeTo(1.0, 140);
 
     const onTap = (e)=>{
       if (bomb.dead || !STATE.running) return;
@@ -130,8 +166,8 @@
   }
 
   function hitBomb(bomb){
-    // pause song until next spawn
-    try { audio.pause(); } catch(e) {}
+    // fade down volume until next spawn
+    fadeTo(0.0, 160);
 
     if (bomb.el && bomb.el.parentNode){
       const pop = document.createElement('div');
@@ -150,10 +186,11 @@
   function missBomb(bomb){
     if (bomb.dead) return;
     bomb.dead = true;
-    try { audio.pause(); } catch(e) {}
+    fadeTo(0.0, 160);
     if (bomb.el) bomb.el.remove();
     STATE.bombs.delete(bomb.id);
-    STATE.lives -= 1; livesEl.textContent = STATE.lives; flashHUD();
+    STATE.lives -= 1; renderLives();
+    flashHUD();
     if (STATE.lives <= 0) endGame();
   }
 
@@ -174,23 +211,28 @@
     STATE.bombs.forEach(b=> b.el && b.el.remove());
     STATE.bombs.clear();
     STATE.lastId=0; STATE.spawnInterval=1000; STATE.shrinkRate=0.5; STATE.startedAt=0; STATE.nextSpawnAt=0;
-    scoreEl.textContent='0'; livesEl.textContent='3'; levelEl.textContent='1';
-    try { audio.pause(); audio.currentTime = 0; } catch(e) {}
+    scoreEl.textContent='0'; levelEl.textContent='1';
+    renderLives();
+    // keep audio loaded & silent
+    try { audio.volume = 0.0; } catch(e) {}
   }
 
-  function start(){
-    // user gesture allows audio playback
+  async function start(){
     reset();
     overlay.style.display='none';
     restartBtn.hidden = true;
     STATE.running=true; STATE.startedAt=performance.now();
     STATE.nextSpawnAt = performance.now() + 400;
+
+    // Start audio playback once (user gesture) at volume 0
+    try { await audio.play(); audio.volume = 0.0; } catch(e) { /* safari autoplay might delay; it will start after next user gesture */ }
+
     requestAnimationFrame(loop);
   }
 
   function endGame(){
     STATE.running=false;
-    try { audio.pause(); } catch(e) {}
+    fadeTo(0.0, 160);
     restartBtn.hidden = false;
     overlay.style.display='grid';
     overlay.querySelector('h1').textContent = 'Game Over';
@@ -233,5 +275,6 @@
     });
   });
 })();
-</script></body>
+</script>
+</body>
 </html>
