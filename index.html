@@ -18,7 +18,7 @@
     .card{background:rgba(15,23,42,.9); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:18px; width:min(92vw,520px); text-align:center}
     h1{margin:0 0 8px}
     .hint{color:var(--muted); font-size:.95rem}/* Targets: face images - no circular mask */
-.target{position:absolute; width:96px; height:96px; /* no border-radius */ object-fit:contain; object-position:center; box-shadow: 0 8px 24px rgba(0,0,0,.45), inset 0 2px 6px rgba(255,255,255,.25); background:transparent; transform-origin:center center; will-change: transform, opacity;}
+.target{position:absolute; width:96px; height:96px; /* no border-radius */ object-fit:contain; object-position:center; transform-origin:center center; will-change: transform, opacity;}
 .target.flash{animation:flash .15s linear 2}
 @keyframes flash { from{filter:brightness(1)} to{filter:brightness(1.5)} }
 
